@@ -3,6 +3,7 @@ const app = express()
 const port = 3000
 const RecordManager = require('./recordManager')
 const bodyParser = require('body-parser')
+const { generateVideo, moveVideo} = require('./helpers/converter')
 
 app.use(bodyParser.json());
 
@@ -28,14 +29,20 @@ app.post('/recorder/v1/start', (req, res, next) => {
     });
 })
 
-app.post('/recorder/v1/stop', (req, res, next) => {
+app.post('/recorder/v1/stop', async (req, res, next) => {
     let { body } = req;
-    let { sid } = body;
-    if (!sid) {
+    let { sid, channel } = body;
+    if (!sid || !channel) {
         throw new Error("sid is mandatory");
     }
 
     RecordManager.stop(sid);
+    try {
+        await generateVideo(channel)
+        await moveVideo(channel)
+    } catch (e) {
+        console.error(e)
+    }
     res.status(200).json({
         success: true
     });
